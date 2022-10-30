@@ -1,17 +1,7 @@
-name: Linter
-
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches: '*'
-
-jobs:
-  lint:
-    runs-on: ubuntu-latest
+name: Setup
+runs:
+  using: "composite"
     steps:
-      - uses: actions/checkout@v2
       - name: Install node
         uses: actions/setup-node@v1
         with:
@@ -25,5 +15,5 @@ jobs:
       - name: Install
         run: yarn --immutable
         if: steps.cache.outputs.cache-hit != 'true'
-      - name: Lint
-        run: yarn lint
+      - name: Build
+        run: yarn build
