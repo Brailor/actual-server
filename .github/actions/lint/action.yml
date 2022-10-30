@@ -4,3 +4,4 @@ runs:
   steps:
     - name: Lint
       run: yarn lint
+      shell: bash
