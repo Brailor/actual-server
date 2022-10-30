@@ -4,6 +4,10 @@ kill_signal = "SIGINT"
 kill_timeout = 5
 processes = []
 
+[mounts]
+  source="actual_data"
+  destination="/data"
+
 [env]
   PORT = "5006"
   TINI_SUBREAPER = 1
