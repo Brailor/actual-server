@@ -1,9 +1,11 @@
 let express = require('express');
 let bcrypt = require('bcrypt');
 let uuid = require('uuid');
+let fsp = require('node:fs/promises');
 let errorMiddleware = require('./util/error-middleware');
 let { validateUser } = require('./util/validate-user');
 let { getAccountDb } = require('./account-db');
+const config = require('./load-config');
 
 let app = express();
 app.use(errorMiddleware);
@@ -106,6 +108,46 @@ app.get('/validate', (req, res) => {
   let user = validateUser(req, res);
   if (user) {
     res.send({ status: 'ok', data: { validated: true } });
+  }
+});
+
+app.get('/export', async (req, res) => {
+  let user = validateUser(req, res);
+  if (!user) return;
+
+  // query the /user-files directory and grab the most recent .blob file
+  let userFilesPath = config.userFiles;
+  try {
+    const dir = await fsp.opendir(userFilesPath);
+    let files = [];
+    for await (const dirent of dir) {
+      if (dirent.isFile() && dirent.name.split('.').at(-1) === 'blob') {
+        let stats = await fsp.stat(`${dir.path}/${dirent.name}`);
+        files.push({ name: dirent.name, last_changed: stats.ctime });
+      }
+    }
+
+    files.sort((fileA, fileB) => {
+      let [timeA, timeB] = [
+        fileA.last_changed.getTime(),
+        fileB.last_changed.getTime()
+      ];
+      if (timeA > timeB) {
+        return -1;
+      } else if (timeB > timeA) {
+        return 1;
+      }
+
+      return 0;
+    });
+
+    if (files.length < 1) {
+      throw Error();
+    }
+
+    res.sendFile(`${userFilesPath}/${files.at(0).name}`);
+  } catch (e) {
+    res.send({ status: 'error', reason: 'could-not-locate-user-files' });
   }
 });
 
